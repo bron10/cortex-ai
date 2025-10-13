@@ -1,0 +1,42 @@
+#!/usr/bin/env node
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+require("source-map-support/register");
+const cdk = require("aws-cdk-lib");
+const cortex_ai_stack_1 = require("../lib/cortex-ai-stack");
+const app = new cdk.App();
+// Basic usage example
+new cortex_ai_stack_1.CortexAIStack(app, 'BasicCortexAI', {
+    environment: 'dev',
+    applicationName: 'basic-ai-app',
+    enableAIInsights: true,
+    description: 'Basic CortexAI implementation for development',
+});
+// Production configuration example
+new cortex_ai_stack_1.CortexAIStack(app, 'ProductionCortexAI', {
+    environment: 'prod',
+    applicationName: 'enterprise-ai-platform',
+    enableAIInsights: true,
+    cognitoConfig: {
+        userPoolName: 'enterprise-users-prod',
+        userPoolClientName: 'enterprise-client-prod',
+    },
+    dynamoConfig: {
+        billingMode: 'PROVISIONED',
+        removalPolicy: 'RETAIN',
+    },
+    s3Config: {
+        versioned: true,
+        removalPolicy: 'RETAIN',
+    },
+    description: 'Production CortexAI platform with enterprise features',
+});
+// Staging configuration without AI insights
+new cortex_ai_stack_1.CortexAIStack(app, 'StagingCortexAI', {
+    environment: 'staging',
+    applicationName: 'staging-ai-app',
+    enableAIInsights: false,
+    description: 'Staging environment without AI insights for cost optimization',
+});
+app.synth();
+//# sourceMappingURL=data:application/json;base64,eyJ2ZXJzaW9uIjozLCJmaWxlIjoiYmFzaWMtdXNhZ2UuanMiLCJzb3VyY2VSb290IjoiIiwic291cmNlcyI6WyJiYXNpYy11c2FnZS50cyJdLCJuYW1lcyI6W10sIm1hcHBpbmdzIjoiOzs7QUFDQSx1Q0FBcUM7QUFDckMsbUNBQW1DO0FBQ25DLDREQUF1RDtBQUV2RCxNQUFNLEdBQUcsR0FBRyxJQUFJLEdBQUcsQ0FBQyxHQUFHLEVBQUUsQ0FBQztBQUUxQixzQkFBc0I7QUFDdEIsSUFBSSwrQkFBYSxDQUFDLEdBQUcsRUFBRSxlQUFlLEVBQUU7SUFDdEMsV0FBVyxFQUFFLEtBQUs7SUFDbEIsZUFBZSxFQUFFLGNBQWM7SUFDL0IsZ0JBQWdCLEVBQUUsSUFBSTtJQUN0QixXQUFXLEVBQUUsK0NBQStDO0NBQzdELENBQUMsQ0FBQztBQUVILG1DQUFtQztBQUNuQyxJQUFJLCtCQUFhLENBQUMsR0FBRyxFQUFFLG9CQUFvQixFQUFFO0lBQzNDLFdBQVcsRUFBRSxNQUFNO0lBQ25CLGVBQWUsRUFBRSx3QkFBd0I7SUFDekMsZ0JBQWdCLEVBQUUsSUFBSTtJQUN0QixhQUFhLEVBQUU7UUFDYixZQUFZLEVBQUUsdUJBQXVCO1FBQ3JDLGtCQUFrQixFQUFFLHdCQUF3QjtLQUM3QztJQUNELFlBQVksRUFBRTtRQUNaLFdBQVcsRUFBRSxhQUFhO1FBQzFCLGFBQWEsRUFBRSxRQUFRO0tBQ3hCO0lBQ0QsUUFBUSxFQUFFO1FBQ1IsU0FBUyxFQUFFLElBQUk7UUFDZixhQUFhLEVBQUUsUUFBUTtLQUN4QjtJQUNELFdBQVcsRUFBRSx1REFBdUQ7Q0FDckUsQ0FBQyxDQUFDO0FBRUgsNENBQTRDO0FBQzVDLElBQUksK0JBQWEsQ0FBQyxHQUFHLEVBQUUsaUJBQWlCLEVBQUU7SUFDeEMsV0FBVyxFQUFFLFNBQVM7SUFDdEIsZUFBZSxFQUFFLGdCQUFnQjtJQUNqQyxnQkFBZ0IsRUFBRSxLQUFLO0lBQ3ZCLFdBQVcsRUFBRSwrREFBK0Q7Q0FDN0UsQ0FBQyxDQUFDO0FBRUgsR0FBRyxDQUFDLEtBQUssRUFBRSxDQUFDIiwic291cmNlc0NvbnRlbnQiOlsiIyEvdXNyL2Jpbi9lbnYgbm9kZVxuaW1wb3J0ICdzb3VyY2UtbWFwLXN1cHBvcnQvcmVnaXN0ZXInO1xuaW1wb3J0ICogYXMgY2RrIGZyb20gJ2F3cy1jZGstbGliJztcbmltcG9ydCB7IENvcnRleEFJU3RhY2sgfSBmcm9tICcuLi9saWIvY29ydGV4LWFpLXN0YWNrJztcblxuY29uc3QgYXBwID0gbmV3IGNkay5BcHAoKTtcblxuLy8gQmFzaWMgdXNhZ2UgZXhhbXBsZVxubmV3IENvcnRleEFJU3RhY2soYXBwLCAnQmFzaWNDb3J0ZXhBSScsIHtcbiAgZW52aXJvbm1lbnQ6ICdkZXYnLFxuICBhcHBsaWNhdGlvbk5hbWU6ICdiYXNpYy1haS1hcHAnLFxuICBlbmFibGVBSUluc2lnaHRzOiB0cnVlLFxuICBkZXNjcmlwdGlvbjogJ0Jhc2ljIENvcnRleEFJIGltcGxlbWVudGF0aW9uIGZvciBkZXZlbG9wbWVudCcsXG59KTtcblxuLy8gUHJvZHVjdGlvbiBjb25maWd1cmF0aW9uIGV4YW1wbGVcbm5ldyBDb3J0ZXhBSVN0YWNrKGFwcCwgJ1Byb2R1Y3Rpb25Db3J0ZXhBSScsIHtcbiAgZW52aXJvbm1lbnQ6ICdwcm9kJyxcbiAgYXBwbGljYXRpb25OYW1lOiAnZW50ZXJwcmlzZS1haS1wbGF0Zm9ybScsXG4gIGVuYWJsZUFJSW5zaWdodHM6IHRydWUsXG4gIGNvZ25pdG9Db25maWc6IHtcbiAgICB1c2VyUG9vbE5hbWU6ICdlbnRlcnByaXNlLXVzZXJzLXByb2QnLFxuICAgIHVzZXJQb29sQ2xpZW50TmFtZTogJ2VudGVycHJpc2UtY2xpZW50LXByb2QnLFxuICB9LFxuICBkeW5hbW9Db25maWc6IHtcbiAgICBiaWxsaW5nTW9kZTogJ1BST1ZJU0lPTkVEJyxcbiAgICByZW1vdmFsUG9saWN5OiAnUkVUQUlOJyxcbiAgfSxcbiAgczNDb25maWc6IHtcbiAgICB2ZXJzaW9uZWQ6IHRydWUsXG4gICAgcmVtb3ZhbFBvbGljeTogJ1JFVEFJTicsXG4gIH0sXG4gIGRlc2NyaXB0aW9uOiAnUHJvZHVjdGlvbiBDb3J0ZXhBSSBwbGF0Zm9ybSB3aXRoIGVudGVycHJpc2UgZmVhdHVyZXMnLFxufSk7XG5cbi8vIFN0YWdpbmcgY29uZmlndXJhdGlvbiB3aXRob3V0IEFJIGluc2lnaHRzXG5uZXcgQ29ydGV4QUlTdGFjayhhcHAsICdTdGFnaW5nQ29ydGV4QUknLCB7XG4gIGVudmlyb25tZW50OiAnc3RhZ2luZycsXG4gIGFwcGxpY2F0aW9uTmFtZTogJ3N0YWdpbmctYWktYXBwJyxcbiAgZW5hYmxlQUlJbnNpZ2h0czogZmFsc2UsIC8vIERpc2FibGUgQUkgaW5zaWdodHMgZm9yIHN0YWdpbmdcbiAgZGVzY3JpcHRpb246ICdTdGFnaW5nIGVudmlyb25tZW50IHdpdGhvdXQgQUkgaW5zaWdodHMgZm9yIGNvc3Qgb3B0aW1pemF0aW9uJyxcbn0pO1xuXG5hcHAuc3ludGgoKTtcbiJdfQ==

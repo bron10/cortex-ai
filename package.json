@@ -1,0 +1,46 @@
+{
+  "name": "cortex-ai-monorepo",
+  "version": "1.0.0",
+  "description": "CortexAI - Multi-tenant AI-powered data processing platform with Next.js frontend",
+  "private": true,
+  "workspaces": [
+    "infra",
+    "frontend"
+  ],
+  "scripts": {
+    "build": "npm run build --workspaces",
+    "dev": "npm run dev --workspace=frontend",
+    "deploy:infra": "npm run deploy --workspace=infra",
+    "deploy:frontend": "npm run deploy --workspace=frontend",
+    "deploy:all": "npm run deploy:infra && npm run deploy:frontend",
+    "test": "npm run test --workspaces",
+    "clean": "npm run clean --workspaces",
+    "setup": "npm install && npm run build",
+    "infra:diff": "npm run diff --workspace=infra",
+    "infra:destroy": "npm run destroy --workspace=infra"
+  },
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "tailwindcss": "^4.1.12",
+    "typescript": "~5.0.0"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=8.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/your-org/cortex-ai-monorepo.git"
+  },
+  "keywords": [
+    "aws-cdk",
+    "nextjs",
+    "amplify",
+    "multi-tenant",
+    "ai",
+    "bedrock",
+    "serverless"
+  ],
+  "author": "CortexAI Team",
+  "license": "MIT"
+}

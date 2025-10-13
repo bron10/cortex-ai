@@ -1,0 +1,19 @@
+{
+  "name": "list-files",
+  "version": "1.0.0",
+  "description": "Lambda function to list files for a tenant",
+  "main": "index.js",
+  "scripts": {
+    "build": "tsc",
+    "clean": "rm -rf dist"
+  },
+  "dependencies": {
+    "@aws-sdk/client-dynamodb": "^3.883.0",
+    "@aws-sdk/lib-dynamodb": "^3.883.0"
+  },
+  "devDependencies": {
+    "@types/aws-lambda": "^8.10.130",
+    "@types/node": "^20.19.13",
+    "typescript": "~5.0.0"
+  }
+}
