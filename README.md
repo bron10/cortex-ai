@@ -1,6 +1,6 @@
 # CortexAI Monorepo
 
-A complete multi-tenant AI-powered data processing platform with AWS CDK infrastructure and Next.js frontend.
+A complete multi-tenant AI-powered data processing platform with AWS CDK infrastructure and Next.js frontend.[Learn more](https://webvictory.hashnode.dev/cortexai-building-tenant-aware-ai-insights-on-aws)
 
 ## 🏗️ Architecture
 
