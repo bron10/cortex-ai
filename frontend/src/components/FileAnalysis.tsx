@@ -54,6 +54,14 @@ export default function FileAnalysis({ file, onClose }: FileAnalysisProps) {
   const [isGeneratingInsights, setIsGeneratingInsights] = useState(false)
   const [additionalInsights, setAdditionalInsights] = useState<string>('')
   const [showHistory, setShowHistory] = useState(false)
+  const [useDspy, setUseDspy] = useState(() => {
+    // Load preference from localStorage, default to true
+    if (typeof window !== 'undefined') {
+      const saved = localStorage.getItem('useDspy')
+      return saved !== null ? saved === 'true' : true
+    }
+    return true
+  })
   const insightsScrollRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -73,6 +81,13 @@ export default function FileAnalysis({ file, onClose }: FileAnalysisProps) {
       insightsScrollRef.current.scrollTop = insightsScrollRef.current.scrollHeight
     }
   }, [additionalInsights])
+
+  // Save useDspy preference to localStorage when it changes
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      localStorage.setItem('useDspy', useDspy.toString())
+    }
+  }, [useDspy])
 
   const generateEnhancedInsights = (fileData: FileData) => {
     // Generate enhanced insights based on existing data
@@ -126,7 +141,8 @@ export default function FileAnalysis({ file, onClose }: FileAnalysisProps) {
         options: {
           queryParams: {
             dataId: file.dataId,
-            prompt: prompt
+            prompt: prompt,
+            useDspy: useDspy.toString()
           },
           headers: {
             'Authorization': `Bearer ${token}`
@@ -482,6 +498,21 @@ export default function FileAnalysis({ file, onClose }: FileAnalysisProps) {
                       </div>
                     </div>
                   )}
+
+                  {/* DSPy Toggle */}
+                  <div className="flex items-center mb-3 p-2 bg-white rounded-md border border-gray-200">
+                    <input
+                      type="checkbox"
+                      id="useDspy"
+                      checked={useDspy}
+                      onChange={(e) => setUseDspy(e.target.checked)}
+                      className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                    />
+                    <label htmlFor="useDspy" className="ml-2 text-sm text-gray-700 cursor-pointer">
+                      <span className="font-medium">Use DSPy Optimization</span>
+                      <span className="text-gray-500 ml-1">(Enhanced AI insights with optimized prompts)</span>
+                    </label>
+                  </div>
 
                   {/* Prompt Input */}
                   <div>

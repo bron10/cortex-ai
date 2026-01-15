@@ -67,6 +67,7 @@ export class CortexAI extends constructs.Construct {
   public readonly uploadFunction: lambda.Function;
   public readonly processFunction: lambda.Function;
   public readonly insightsFunction?: lambda.Function;
+  public readonly dspyInsightsFunction?: lambda.Function;
   public readonly eventBus: events.EventBus;
 
   constructor(scope: constructs.Construct, id: string, props: CortexAIProps = {}) {
@@ -294,6 +295,52 @@ export class CortexAI extends constructs.Construct {
       // Grant other necessary permissions
       this.dataTable.grantReadWriteData(this.insightsFunction);
       this.dataBucket.grantRead(this.insightsFunction);
+
+      // Create DSPy-powered insights Lambda function (Python)
+      this.dspyInsightsFunction = new lambda.Function(this, 'DspyInsightsFunction', {
+        functionName: `${applicationName}-${environment}-dspy-insights`,
+        runtime: lambda.Runtime.PYTHON_3_12,
+        handler: 'index.lambda_handler',
+        code: lambda.Code.fromAsset(path.join(__dirname, '../lambda/dspy-insights'), {
+          bundling: {
+            image: lambda.Runtime.PYTHON_3_12.bundlingImage,
+            command: [
+              'bash', '-c',
+              'pip install -r requirements.txt -t /asset-output && cp -R . /asset-output'
+            ],
+          },
+        }),
+        timeout: cdk.Duration.minutes(5),
+        memorySize: 512,
+        environment: {
+          DATA_TABLE_NAME: this.dataTable.tableName,
+          DATA_BUCKET_NAME: this.dataBucket.bucketName,
+          AWS_REGION: cdk.Stack.of(this).region,
+          BEDROCK_MODEL_ID: 'anthropic.claude-3-sonnet-20240229-v1:0',
+        },
+        logRetention: logs.RetentionDays.ONE_WEEK,
+      });
+
+      // Grant Bedrock permissions to DSPy function
+      this.dspyInsightsFunction.addToRolePolicy(new iam.PolicyStatement({
+        effect: iam.Effect.ALLOW,
+        actions: [
+          'bedrock:InvokeModel',
+          'bedrock:InvokeModelWithResponseStream',
+        ],
+        resources: ['*'], // You can restrict this to specific model ARNs
+      }));
+
+      // Grant DynamoDB and S3 permissions to DSPy function
+      this.dataTable.grantReadData(this.dspyInsightsFunction);
+      this.dataBucket.grantRead(this.dspyInsightsFunction);
+
+      // Grant TypeScript insights Lambda permission to invoke DSPy Lambda
+      this.dspyInsightsFunction.grantInvoke(this.insightsFunction);
+
+      // Update insights Lambda environment to include DSPy Lambda name
+      this.insightsFunction.addEnvironment('DSPY_LAMBDA_NAME', this.dspyInsightsFunction.functionName);
+      this.insightsFunction.addEnvironment('USE_DSPY', 'true'); // Enable DSPy by default
     }
 
     // Create API Gateway
@@ -403,7 +450,7 @@ export class CortexAI extends constructs.Construct {
           },
         ],
         requestTemplates: {
-          'application/json': '{"dataId": "$input.params(\'dataId\')", "prompt": "$input.params(\'prompt\')", "queryParams": $input.params().querystring, "headers": $input.params().header}',
+          'application/json': '{"dataId": "$input.params(\'dataId\')", "prompt": "$input.params(\'prompt\')", "useDspy": "$input.params(\'useDspy\')", "queryParams": $input.params().querystring, "headers": $input.params().header}',
         },
       });
       
@@ -413,6 +460,7 @@ export class CortexAI extends constructs.Construct {
         requestParameters: {
           'method.request.querystring.dataId': true,
           'method.request.querystring.prompt': true,
+          'method.request.querystring.useDspy': false, // Optional parameter
         },
         methodResponses: [
           {

@@ -3,14 +3,18 @@ import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
 import { DynamoDBDocumentClient, UpdateCommand, GetCommand, ScanCommand } from '@aws-sdk/lib-dynamodb';
 import { S3Client, GetObjectCommand } from '@aws-sdk/client-s3';
 import { BedrockRuntimeClient, InvokeModelCommand } from '@aws-sdk/client-bedrock-runtime';
+import { LambdaClient, InvokeCommand } from '@aws-sdk/client-lambda';
 
 const dynamodbClient = new DynamoDBClient({});
 const dynamodb = DynamoDBDocumentClient.from(dynamodbClient);
 const s3 = new S3Client({});
 const bedrock = new BedrockRuntimeClient({ region: process.env.AWS_REGION || 'us-east-1' });
+const lambdaClient = new LambdaClient({ region: process.env.AWS_REGION || 'us-east-1' });
 
 const DATA_TABLE_NAME = process.env.DATA_TABLE_NAME!;
 const DATA_BUCKET_NAME = process.env.DATA_BUCKET_NAME!;
+const DSPY_LAMBDA_NAME = process.env.DSPY_LAMBDA_NAME;
+const USE_DSPY = process.env.USE_DSPY === 'true';
 
 interface DataProcessedEvent {
   tenantId: string;
@@ -108,6 +112,12 @@ async function handleApiGatewayRequest(event: APIGatewayProxyEvent): Promise<API
     // Extract parameters from the request
     const dataId = event.queryStringParameters?.dataId;
     const prompt = event.queryStringParameters?.prompt;
+    const useDspyParam = event.queryStringParameters?.useDspy;
+    
+    // Determine whether to use DSPy: query parameter takes precedence, then environment variable
+    const shouldUseDspy = useDspyParam !== undefined 
+      ? useDspyParam === 'true' 
+      : USE_DSPY;
     
     if (!dataId) {
       return {
@@ -256,7 +266,7 @@ async function handleApiGatewayRequest(event: APIGatewayProxyEvent): Promise<API
     const processingResults = fileRecord.processingResults || {};
     
     // Generate additional insights based on the prompt
-    const insights = await generateAdditionalInsights(data, processingResults, prompt);
+    const insights = await generateAdditionalInsights(data, processingResults, prompt, dataId, tenantId, shouldUseDspy);
     
     // Save the insight to DynamoDB (append to insights history)
     const timestamp = new Date().toISOString();
@@ -374,9 +384,61 @@ async function handleEventBridgeEvent(event: EventBridgeEvent<'DataProcessed', D
 async function generateAdditionalInsights(
   data: any,
   processingResults: any,
-  prompt?: string
+  prompt?: string,
+  dataId?: string,
+  tenantId?: string,
+  useDspyOverride?: boolean
 ): Promise<string> {
+  // Determine whether to use DSPy: override parameter takes precedence, then environment variable
+  const shouldUseDspy = useDspyOverride !== undefined ? useDspyOverride : USE_DSPY;
+  
+  // Option 1: Use DSPy Lambda if enabled and available
+  if (shouldUseDspy && DSPY_LAMBDA_NAME) {
+    try {
+      console.log(`Using DSPy Lambda for insights generation: ${DSPY_LAMBDA_NAME}`);
+      
+      // Build data summary for DSPy
+      const dataSummary = JSON.stringify({
+        recordCount: processingResults.recordCount || 0,
+        dataSize: processingResults.dataSize || 0,
+        qualityScore: processingResults.qualityScore || 0,
+        extractedFields: processingResults.extractedFields || [],
+        sampleData: Array.isArray(data) ? data.slice(0, 5) : data,
+      }, null, 2);
+
+      // Invoke DSPy Lambda
+      const dspyResponse = await lambdaClient.send(new InvokeCommand({
+        FunctionName: DSPY_LAMBDA_NAME,
+        Payload: JSON.stringify({
+          dataSummary,
+          data,
+          processingResults,
+          prompt: prompt || 'Generate general insights about this data',
+          dataId,
+          tenantId,
+        }),
+      }));
+
+      const dspyPayload = JSON.parse(new TextDecoder().decode(dspyResponse.Payload!));
+      
+      if (dspyPayload.statusCode === 200) {
+        const dspyBody = JSON.parse(dspyPayload.body);
+        console.log('DSPy Lambda returned insights successfully');
+        return dspyBody.insights;
+      } else {
+        console.warn('DSPy Lambda returned error, falling back to direct Bedrock:', dspyPayload);
+        // Fall through to direct Bedrock call
+      }
+    } catch (error) {
+      console.error('DSPy Lambda invocation failed, falling back to direct Bedrock:', error);
+      // Fall through to direct Bedrock call
+    }
+  }
+
+  // Option 2: Direct Bedrock call (fallback or when DSPy is disabled)
   try {
+    console.log('Using direct Bedrock call for insights generation');
+    
     // Create a custom prompt based on user input
     const customPrompt = prompt 
       ? `Based on the following data, please answer this specific question: "${prompt}"\n\nData context:\n${JSON.stringify({
